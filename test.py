@@ -215,7 +215,7 @@ def get_clones(module, N):
 
 
 class Encoder(nn.Module):
-    def __init__(self, t, vocab_size, d_model, N, heads, m=14):
+    def __init__(self, t, d_model, N, heads, m=14):
         super().__init__()
         self.N = N
         # self.embed = Embedder(vocab_size, d_model)
@@ -296,10 +296,10 @@ class Gating(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, m, src_vocab, trg_vocab, d_model, N, heads):
+    def __init__(self, m, t, d_model, N, heads):
         super().__init__()
         self.gating = Gating(d_model, m)
-        self.encoder = Encoder(src_vocab, d_model, N, heads)
+        self.encoder = Encoder(t, d_model, N, heads)
         # self.decoder = Decoder(trg_vocab, d_model, N, heads)
         self.out = nn.Linear(d_model, 1)
 
@@ -319,8 +319,8 @@ d_model = 128
 heads = 4
 N = 2
 
-src_vocab = len(EN_TEXT.vocab)
-trg_vocab = len(FR_TEXT.vocab)
+# src_vocab = len(EN_TEXT.vocab)
+# trg_vocab = len(FR_TEXT.vocab)
 model = Transformer(src_vocab, trg_vocab, d_model, N, heads)
 
 for p in model.parameters():
@@ -330,6 +330,8 @@ for p in model.parameters():
 # range of values that stops the signal fading or getting too big.
 # See this blog for a mathematical explanation.
 optim = torch.optim.Adam(model.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
+
+criterion = torch.nn.MSELoss()  # mean-squared error for regression
 
 
 def train_model(epochs, print_every=100):
@@ -343,33 +345,44 @@ def train_model(epochs, print_every=100):
     for epoch in range(epochs):
 
         for i, batch in enumerate(train_iter):
-            src = batch.English.transpose(0, 1)
-            trg = batch.French.transpose(0, 1)
+            # src = batch.English.transpose(0, 1)
+            # trg = batch.French.transpose(0, 1)
             # the French sentence we input has all words except
             # the last, as it is using each word to predict the next
 
-            trg_input = trg[:, :-1]
-
-            # the words we are trying to predict
-
-            targets = trg[:, 1:].contiguous().view(-1)
+            # trg_input = trg[:, :-1]
+            #
+            # # the words we are trying to predict
+            #
+            # targets = trg[:, 1:].contiguous().view(-1)
 
             # create function to make masks using mask code above
 
-            src_mask, trg_mask = create_masks(src, trg_input)
+            # src_mask, trg_mask = create_masks(src, trg_input)
 
-            preds = model(src, trg_input, src_mask, trg_mask)
+            # preds = model(src, trg_input, src_mask, trg_mask)
+            preds = model.forward(i, src)
 
+            # forward pass
+            # outputs = lstm1.forward(X_train_tensors_final)
+            # calculate the gradient, manually setting to 0
             optim.zero_grad()
 
-            loss = F.cross_entropy(preds.view(-1, preds.size(-1)), results, ignore_index=target_pad)
+            # obtain the loss function
+            loss = criterion(preds, y_train_tensors)
+
+            # calculates the loss of the loss function
             loss.backward()
+
+            # improve from loss, i.e back propagation
             optim.step()
 
-            total_loss += loss.data[0]
-            if (i + 1) % print_every == 0:
-                loss_avg = total_loss / print_every
-                print("time = %dm, epoch %d, iter = %d, loss = %.3f, %ds per %d iters" % (
-                    (time.time() - start) // 60, epoch + 1, i + 1, loss_avg, time.time() - temp, print_every))
-                total_loss = 0
-                temp = time.time()
+            i += 1
+            # if (i + 1) % print_every == 0:
+            #     loss_avg = total_loss / print_every
+            #     print("time = %dm, epoch %d, iter = %d, loss = %.3f, %ds per %d iters" % (
+            #         (time.time() - start) // 60, epoch + 1, i + 1, loss_avg, time.time() - temp, print_every))
+            #     total_loss = 0
+            #     temp = time.time()
+            if epoch % 2 == 0:
+                print("Epoch: %d, loss: %1.5f" % (epoch, loss.item()))
