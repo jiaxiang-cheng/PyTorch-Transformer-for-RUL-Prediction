@@ -295,7 +295,7 @@ train_norm = pd.concat([title, data_norm], axis=1)
 
 group = train_norm.groupby(by="unit_nr")
 
-num_epochs = 200
+num_epochs = 20
 d_model = 128
 heads = 4
 N = 2
@@ -348,8 +348,64 @@ for epoch in range(num_epochs):
 
             total_loss += loss.item()
 
-        print("Epoch: %d, No. %d, loss: %1.5f" % (epoch, i, total_loss / x.shape[0]))
+        # print("Epoch: %d, No. %d, loss: %1.5f" % (epoch, i, total_loss / x.shape[0]))
         # if epoch % 2 == 0:
         i += 1
         epoch_loss += total_loss / x.shape[0]
     print("Epoch: %d, loss: %1.5f" % (epoch, epoch_loss / 100))
+
+test.drop(labels=drop_labels, axis=1, inplace=True)
+
+title = test.iloc[:, 0:2]
+data = test.iloc[:, 2:]
+
+data_norm = (data - data.min()) / (data.max() - data.min())
+
+test_norm = pd.concat([title, data_norm], axis=1)
+
+group = test_norm.groupby(by="unit_nr")
+
+rmse = 0
+
+j = 1
+
+result = []
+
+while j <= 100:
+    x = group.get_group(j).to_numpy()
+
+    for t in range(x.shape[0]):
+        if t == 0:
+            X = np.append([np.zeros(14)], x[t:t + 2, 2:], axis=0)
+            y = x[t, -1:]
+        elif t == x.shape[0] - 1:
+            X = np.append(x[t - 1:, 2:], [np.zeros(14)], axis=0)
+        else:
+            X = x[t - 1:t + 2, 2:]
+
+        X_test_tensors = Variable(torch.Tensor(X))
+
+        X_test_tensors_final = X_test_tensors.reshape((1, 1, X_test_tensors.shape[0], X_test_tensors.shape[1]))
+        # train_x = train_x.reshape(train_x.shape[0], 1, 15, nf)
+        # forward pass
+        test_predict = model.forward(X_test_tensors_final, t)
+        data_predict = test_predict.data.numpy()[-1] * 125
+
+    result.append(data_predict)
+    rmse += np.power((data_predict - y_test.to_numpy()[j - 1]), 2)
+    j += 1
+
+rmse = np.sqrt(rmse / 100)
+print(rmse)
+
+plt.figure(figsize=(15, 6))  # plotting
+plt.axvline(x=100, c='r', linestyle='--')  # size of the training set
+
+plt.plot(y_test, label='Actual Data')  # actual plot
+plt.plot(result, label='Predicted Data')  # predicted plot
+plt.title('Remaining Useful Life Prediction')
+plt.legend()
+plt.xlabel("Samples")
+plt.ylabel("Remaining Useful Life")
+plt.savefig('Transformer({})lr{}E{}C{}.png'.format(rmse, "0.001", num_epochs, "125"))
+plt.show()
