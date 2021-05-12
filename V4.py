@@ -3,18 +3,11 @@ import math
 import seaborn
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 import torch.nn.functional as F
-from torch.autograd import Variable
-import numpy as np
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
 import matplotlib.pyplot as plt
-
 import pandas as pd
 import numpy as np
-import time
-
 seaborn.set_context(context="talk")
 
 
@@ -53,9 +46,20 @@ class Gating(nn.Module):
 
         self.init_weights()
 
-        self.cnn_layers = nn.Sequential(
-            nn.Conv2d(1, 1, kernel_size=(3, 1), stride=1),
-        )
+        self.cnn_1 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_2 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_3 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_4 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_5 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_6 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_7 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_8 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_9 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_10 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_11 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_12 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_13 = nn.Conv2d(1, 1, kernel_size=(5, 1))
+        self.cnn_14 = nn.Conv2d(1, 1, kernel_size=(5, 1))
 
     def init_weights(self):
         stdv = 1.0 / math.sqrt(self.m)
@@ -63,11 +67,40 @@ class Gating(nn.Module):
             weight.data.uniform_(-stdv, stdv)
 
     def forward(self, x):
-        x_i = x[:, :, 1:2, :]
-        h_i = self.cnn_layers(x)
-        # print(x_i.size())
-        # print(h_i.size())
+        x_i = x[:, :, -1:, :]
+        x_1 = x[:, :, :, 0:1]
+        h_1 = self.cnn_1(x_1)
+        x_2 = x[:, :, :, 1:2]
+        h_2 = self.cnn_2(x_2)
+        x_3 = x[:, :, :, 2:3]
+        h_3 = self.cnn_3(x_3)
+        x_4 = x[:, :, :, 3:4]
+        h_4 = self.cnn_4(x_4)
+        x_5 = x[:, :, :, 4:5]
+        h_5 = self.cnn_5(x_5)
+        x_6 = x[:, :, :, 5:6]
+        h_6 = self.cnn_6(x_6)
+        x_7 = x[:, :, :, 6:7]
+        h_7 = self.cnn_7(x_7)
+        x_8 = x[:, :, :, 7:8]
+        h_8 = self.cnn_8(x_8)
+        x_9 = x[:, :, :, 8:9]
+        h_9 = self.cnn_9(x_9)
+        x_10 = x[:, :, :, 9:10]
+        h_10 = self.cnn_10(x_10)
+        x_11 = x[:, :, :, 10:11]
+        h_11 = self.cnn_11(x_11)
+        x_12 = x[:, :, :, 11:12]
+        h_12 = self.cnn_12(x_12)
+        x_13 = x[:, :, :, 12:13]
+        h_13 = self.cnn_13(x_13)
+        x_14 = x[:, :, :, 13:]
+        h_14 = self.cnn_14(x_14)
 
+        h_i = torch.cat((h_1, h_2, h_3, h_4, h_5, h_6, h_7, h_8, h_9, h_10, h_11, h_12, h_13, h_14), 1)
+        h_i = torch.reshape(h_i, (1, 14))
+        # print(h_i.size())
+        # print(self.W_r.size())
         # r_i = torch.sigmoid(torch.matmul(self.W_r, h_i) + torch.matmul(self.V_r, x_i) + self.b_r)
         # u_i = torch.sigmoid(torch.matmul(self.W_u, h_i) + torch.matmul(self.V_u, x_i) + self.b_u)
         r_i = torch.sigmoid(torch.matmul(h_i, self.W_r) + torch.matmul(x_i, self.V_r) + self.b_r)
@@ -83,13 +116,14 @@ class Encoder(nn.Module):
     def __init__(self, d_model, N, heads, m):
         super().__init__()
         self.N = N
+        self.d_model = d_model
         # self.embed = Embedder(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model)
         self.layers = get_clones(EncoderLayer(d_model, heads), N)
         self.norm = Norm(d_model)
 
     def forward(self, src, t):
-        src = src.reshape(1, 128)
+        src = src.reshape(1, self.d_model)
         # print(src.size())
         x = self.pe(src, t)
         for i in range(self.N):
@@ -137,7 +171,7 @@ def get_clones(module, N):
 
 # build an encoder layer with one multi-head attention layer and one # feed-forward layer
 class EncoderLayer(nn.Module):
-    def __init__(self, d_model, heads, dropout=1):
+    def __init__(self, d_model, heads, dropout=0.8):
         super().__init__()
         self.norm_1 = Norm(d_model)
         self.norm_2 = Norm(d_model)
@@ -175,7 +209,7 @@ class Norm(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, d_model, dropout=1):
+    def __init__(self, heads, d_model, dropout=0.8):
         super().__init__()
 
         self.d_model = d_model
@@ -231,7 +265,7 @@ def attention(q, k, v, d_k, mask=None, dropout=None):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, d_model, d_ff=512, dropout=1):
+    def __init__(self, d_model, d_ff=512, dropout=0.8):
         super().__init__()
         # We set d_ff as a default to 2048
         self.linear_1 = nn.Linear(d_model, d_ff)
@@ -322,8 +356,9 @@ train_norm = add_remaining_useful_life(train_norm)
 
 group = train_norm.groupby(by="unit_nr")
 
-num_epochs = 3
+num_epochs = 2
 d_model = 128
+# 128
 heads = 4
 N = 2
 m = 14
@@ -337,11 +372,9 @@ for p in model.parameters():
 # range of values that stops the signal fading or getting too big.
 # See this blog for a mathematical explanation.
 # optim = torch.optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-optim = torch.optim.Adam(model.parameters(), lr=0.001)
+optim = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 criterion = torch.nn.MSELoss()  # mean-squared error for regression
-
-scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[20631*2], gamma=0.1)
 
 for epoch in range(num_epochs):
     i = 1
@@ -349,15 +382,16 @@ for epoch in range(num_epochs):
     while i <= 100:
         x = group.get_group(i).to_numpy()
         total_loss = 0
-        for t in range(x.shape[0]):
+        for t in range(x.shape[0] - 2):
             if t == 0:
-                X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
-                y = x[t, -1:]
-            elif t == x.shape[0] - 1:
-                X = np.append(x[t - 1:, 2:-1], [np.zeros(14)], axis=0)
+                # X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
+                # y = x[t, -1:]
+                continue
+            elif t == 1:
+                continue
             else:
-                X = x[t - 1:t + 2, 2:-1]
-            y = x[t, -1:]
+                X = x[t - 2:t + 3, 2:-1]
+            y = x[t + 2, -1:]
             X_train_tensors = Variable(torch.Tensor(X))
             y_train_tensors = Variable(torch.Tensor(y))
             X_train_tensors_final = X_train_tensors.reshape((1, 1, X_train_tensors.shape[0], X_train_tensors.shape[1]))
@@ -375,7 +409,6 @@ for epoch in range(num_epochs):
 
             # improve from loss, i.e back propagation
             optim.step()
-            scheduler.step()
 
             total_loss += loss.item()
 
@@ -404,15 +437,16 @@ result = []
 
 while j <= 100:
     x = group.get_group(j).to_numpy()
-
-    for t in range(x.shape[0]):
+    data_predict = 0
+    for t in range(x.shape[0] - 2):
         if t == 0:
-            X = np.append([np.zeros(14)], x[t:t + 2, 2:], axis=0)
-            y = x[t, -1:]
-        elif t == x.shape[0] - 1:
-            X = np.append(x[t - 1:, 2:], [np.zeros(14)], axis=0)
+            # X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
+            # y = x[t, -1:]
+            continue
+        elif t == 1:
+            continue
         else:
-            X = x[t - 1:t + 2, 2:]
+            X = x[t - 2:t + 3, 2:]
 
         X_test_tensors = Variable(torch.Tensor(X))
 
@@ -420,7 +454,7 @@ while j <= 100:
         # train_x = train_x.reshape(train_x.shape[0], 1, 15, nf)
         # forward pass
         test_predict = model.forward(X_test_tensors_final, t)
-        data_predict = test_predict.data.numpy()[-1] * 140
+        data_predict = test_predict.data.numpy()[-1] * 145
 
     if data_predict < 0:
         data_predict = 0
@@ -447,5 +481,5 @@ plt.title('Remaining Useful Life Prediction')
 plt.legend()
 plt.xlabel("Samples")
 plt.ylabel("Remaining Useful Life")
-plt.savefig('Transformer({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "140", "512"))
+plt.savefig('TransformerV4({})lr{}E{}C{}F{}D{}_weibull.png'.format(rmse, "0.001", num_epochs, "145", "512", d_model))
 plt.show()

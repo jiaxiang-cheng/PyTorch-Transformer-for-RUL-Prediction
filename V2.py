@@ -63,7 +63,7 @@ class Gating(nn.Module):
             weight.data.uniform_(-stdv, stdv)
 
     def forward(self, x):
-        x_i = x[:, :, 1:2, :]
+        x_i = x[:, :, -1:, :]
         h_i = self.cnn_layers(x)
         # print(x_i.size())
         # print(h_i.size())
@@ -137,7 +137,7 @@ def get_clones(module, N):
 
 # build an encoder layer with one multi-head attention layer and one # feed-forward layer
 class EncoderLayer(nn.Module):
-    def __init__(self, d_model, heads, dropout=1):
+    def __init__(self, d_model, heads, dropout=0.1):
         super().__init__()
         self.norm_1 = Norm(d_model)
         self.norm_2 = Norm(d_model)
@@ -175,7 +175,7 @@ class Norm(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, d_model, dropout=1):
+    def __init__(self, heads, d_model, dropout=0.1):
         super().__init__()
 
         self.d_model = d_model
@@ -231,7 +231,7 @@ def attention(q, k, v, d_k, mask=None, dropout=None):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, d_model, d_ff=512, dropout=1):
+    def __init__(self, d_model, d_ff=512, dropout=0.1):
         super().__init__()
         # We set d_ff as a default to 2048
         self.linear_1 = nn.Linear(d_model, d_ff)
@@ -322,7 +322,7 @@ train_norm = add_remaining_useful_life(train_norm)
 
 group = train_norm.groupby(by="unit_nr")
 
-num_epochs = 3
+num_epochs = 10
 d_model = 128
 heads = 4
 N = 2
@@ -341,23 +341,22 @@ optim = torch.optim.Adam(model.parameters(), lr=0.001)
 
 criterion = torch.nn.MSELoss()  # mean-squared error for regression
 
-scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[20631*2], gamma=0.1)
-
 for epoch in range(num_epochs):
     i = 1
     epoch_loss = 0
     while i <= 100:
         x = group.get_group(i).to_numpy()
         total_loss = 0
-        for t in range(x.shape[0]):
+        for t in range(x.shape[0] - 1):
             if t == 0:
-                X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
-                y = x[t, -1:]
+                # X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
+                # y = x[t, -1:]
+                continue
             elif t == x.shape[0] - 1:
-                X = np.append(x[t - 1:, 2:-1], [np.zeros(14)], axis=0)
+                X = x[t - 1:, 2:-1]
             else:
                 X = x[t - 1:t + 2, 2:-1]
-            y = x[t, -1:]
+            y = x[t + 1, -1:]
             X_train_tensors = Variable(torch.Tensor(X))
             y_train_tensors = Variable(torch.Tensor(y))
             X_train_tensors_final = X_train_tensors.reshape((1, 1, X_train_tensors.shape[0], X_train_tensors.shape[1]))
@@ -375,7 +374,6 @@ for epoch in range(num_epochs):
 
             # improve from loss, i.e back propagation
             optim.step()
-            scheduler.step()
 
             total_loss += loss.item()
 
@@ -405,12 +403,13 @@ result = []
 while j <= 100:
     x = group.get_group(j).to_numpy()
 
-    for t in range(x.shape[0]):
+    for t in range(x.shape[0] - 1):
         if t == 0:
-            X = np.append([np.zeros(14)], x[t:t + 2, 2:], axis=0)
-            y = x[t, -1:]
+            # X = np.append([np.zeros(14)], x[t:t + 2, 2:], axis=0)
+            # y = x[t, -1:]
+            continue
         elif t == x.shape[0] - 1:
-            X = np.append(x[t - 1:, 2:], [np.zeros(14)], axis=0)
+            X = x[t - 1:, 2:]
         else:
             X = x[t - 1:t + 2, 2:]
 
@@ -432,20 +431,13 @@ while j <= 100:
 rmse = np.sqrt(rmse / 100)
 print(rmse)
 
-result = pd.DataFrame(result)
-result = y_test.join(result)
-result = result.sort_values('RUL', ascending=False)
-
-true_rul = result.iloc[:, 0:1].to_numpy()
-pred_rul = result.iloc[:, 1:].to_numpy()
-
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(15, 6))
 plt.axvline(x=100, c='r', linestyle='--')
-plt.plot(true_rul, label='Actual Data')
-plt.plot(pred_rul, label='Predicted Data')
+plt.plot(y_test, label='Actual Data')
+plt.plot(result, label='Predicted Data')
 plt.title('Remaining Useful Life Prediction')
 plt.legend()
 plt.xlabel("Samples")
 plt.ylabel("Remaining Useful Life")
-plt.savefig('Transformer({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "140", "512"))
+plt.savefig('TransformerV2({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "140", "512"))
 plt.show()
