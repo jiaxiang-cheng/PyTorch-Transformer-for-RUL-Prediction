@@ -298,18 +298,6 @@ drop_sensors = ['s_1', 's_5', 's_6', 's_10', 's_16', 's_18', 's_19']
 drop_labels = setting_names + drop_sensors
 train.drop(labels=drop_labels, axis=1, inplace=True)
 
-# train = add_remaining_useful_life(train)
-# train['RUL'].clip(upper=140, inplace=True)
-#
-# title = train.iloc[:, 0:2]
-# data = train.iloc[:, 2:]
-#
-# data_norm = (data - data.min()) / (data.max() - data.min())
-#
-# train_norm = pd.concat([title, data_norm], axis=1)
-#
-# group = train_norm.groupby(by="unit_nr")
-
 title = train.iloc[:, 0:2]
 data = train.iloc[:, 2:]
 
@@ -322,7 +310,7 @@ train_norm = add_remaining_useful_life(train_norm)
 
 group = train_norm.groupby(by="unit_nr")
 
-num_epochs = 4
+num_epochs = 100
 d_model = 128
 heads = 4
 N = 2
@@ -333,15 +321,12 @@ model = Transformer(m, d_model, N, heads)
 for p in model.parameters():
     if p.dim() > 1:
         nn.init.xavier_uniform_(p)
-# this code is very important! It initialises the parameters with a
-# range of values that stops the signal fading or getting too big.
-# See this blog for a mathematical explanation.
-# optim = torch.optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-optim = torch.optim.Adam(model.parameters(), lr=0.001)
+
+optim = torch.optim.Adam(model.parameters(), lr=0.0001)
 
 criterion = torch.nn.MSELoss()  # mean-squared error for regression
 
-scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[2, 3, 4], gamma=0.01)
+# scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[10], gamma=0.1)
 
 for epoch in range(num_epochs):
     i = 1
@@ -349,6 +334,7 @@ for epoch in range(num_epochs):
     while i <= 100:
         x = group.get_group(i).to_numpy()
         total_loss = 0
+        optim.zero_grad()
         for t in range(x.shape[0]):
             if t == 0:
                 X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
@@ -361,29 +347,25 @@ for epoch in range(num_epochs):
             X_train_tensors = Variable(torch.Tensor(X))
             y_train_tensors = Variable(torch.Tensor(y))
             X_train_tensors_final = X_train_tensors.reshape((1, 1, X_train_tensors.shape[0], X_train_tensors.shape[1]))
-            # train_x = train_x.reshape(train_x.shape[0], 1, 15, nf)
+
             # forward pass
             outputs = model.forward(X_train_tensors_final, t)
-            # calculate the gradient, manually setting to 0
-            optim.zero_grad()
 
             # obtain the loss function
             loss = criterion(outputs, y_train_tensors)
 
-            # calculates the loss of the loss function
-            loss.backward()
-
-            # improve from loss, i.e back propagation
-            optim.step()
-
             total_loss += loss.item()
 
-        # print("Epoch: %d, No. %d, loss: %1.5f" % (epoch, i, total_loss / x.shape[0]))
-        # if epoch % 2 == 0:
+            loss = loss / x.shape[0]  # Normalize our loss (if averaged)
+            loss.backward()  # Backward pass
+            if t == x.shape[0] - 1:  # Wait for several backward steps
+                optim.step()  # Now we can do an optimizer step
+                optim.zero_grad()  # Reset gradients tensors
+
         i += 1
         epoch_loss += total_loss / x.shape[0]
 
-    scheduler.step()
+    # scheduler.step()
 
     print("Epoch: %d, loss: %1.5f" % (epoch, epoch_loss / 100))
 
@@ -419,8 +401,7 @@ while j <= 100:
         X_test_tensors = Variable(torch.Tensor(X))
 
         X_test_tensors_final = X_test_tensors.reshape((1, 1, X_test_tensors.shape[0], X_test_tensors.shape[1]))
-        # train_x = train_x.reshape(train_x.shape[0], 1, 15, nf)
-        # forward pass
+
         test_predict = model.forward(X_test_tensors_final, t)
         data_predict = test_predict.data.numpy()[-1] * 140
 
@@ -449,5 +430,5 @@ plt.title('Remaining Useful Life Prediction')
 plt.legend()
 plt.xlabel("Samples")
 plt.ylabel("Remaining Useful Life")
-plt.savefig('Transformer({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "140", "512"))
+plt.savefig('TransformerV5({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.0001", num_epochs, "140", "512"))
 plt.show()

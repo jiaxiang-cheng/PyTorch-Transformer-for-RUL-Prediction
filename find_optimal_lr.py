@@ -1,19 +1,15 @@
 import copy
 import math
 import seaborn
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-import numpy as np
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
-import matplotlib.pyplot as plt
 
 import pandas as pd
 import numpy as np
-import time
+import matplotlib.pyplot as plt
 
 seaborn.set_context(context="talk")
 
@@ -102,26 +98,10 @@ class PositionalEncoder(nn.Module):
         super().__init__()
         self.d_model = d_model
 
-        # create constant 'pe' matrix with values dependant on
-        # pos and i
-        # pe = torch.zeros(1, m)
-        # for i in range(0, m, 2):
-        #     pe[1, i] = \
-        #         math.sin(t / (10000 ** ((2 * i) / m)))
-        #     pe[1, i + 1] = \
-        #         math.cos(t / (10000 ** ((2 * (i + 1)) / m)))
-        #
-        # pe = pe.unsqueeze(0)
-        # self.register_buffer('pe', pe)
-
     def forward(self, x, t):
         # make embeddings relatively larger
         x = x * math.sqrt(self.d_model)
-        # add constant to embedding
-        # seq_len = x.size(1)
-        # x = x + Variable(self.pe[:, :seq_len], requires_grad=False)
         pe = np.zeros(self.d_model)
-        # print("pe:", pe.size())
         for i in range(0, self.d_model, 2):
             pe[i] = math.sin(t / (10000 ** ((2 * i) / self.d_model)))
             pe[i + 1] = math.cos(t / (10000 ** ((2 * (i + 1)) / self.d_model)))
@@ -252,20 +232,9 @@ def add_remaining_useful_life(df):
     # Merge the max cycle back into the original frame
     result_frame = df.merge(max_cycle.to_frame(name='max_cycle'), left_on='unit_nr', right_index=True)
 
-    # # Calculate remaining useful life for each row (piece-wise Linear)
-    # remaining_useful_life = result_frame["max_cycle"] - result_frame["time_cycles"]
-    #
-    # result_frame["RUL"] = remaining_useful_life
-    #
-    # # drop max_cycle as it's no longer needed
-    # result_frame = result_frame.drop("max_cycle", axis=1)
-
-    # Calculate remaining useful life for each row (scaled Weibull)
     min_engine = np.exp(-pow((result_frame["max_cycle"] / 225.02895), 4.40869))
     result_frame["min"] = min_engine
-    # remaining_useful_life = round(140 * (
-    #         (np.exp(-pow((result_frame["time_cycles"] / 225.02895), 4.40869)) - result_frame["min"]) / (
-    #             1 - result_frame["min"])))
+
     remaining_useful_life = (np.exp(-pow((result_frame["time_cycles"] / 225.02895), 4.40869)) - result_frame["min"]) / (
             1 - result_frame["min"])
 
@@ -337,117 +306,165 @@ for p in model.parameters():
 # range of values that stops the signal fading or getting too big.
 # See this blog for a mathematical explanation.
 # optim = torch.optim.Adam(model.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-optim = torch.optim.Adam(model.parameters(), lr=0.001)
+optim = torch.optim.Adam(model.parameters(), lr=1 / 2e+100)
 
 criterion = torch.nn.MSELoss()  # mean-squared error for regression
 
-scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[2, 3, 4], gamma=0.01)
+scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[1,
+                                                                    2,
+                                                                    3,
+                                                                    4,
+                                                                    5,
+                                                                    6,
+                                                                    7,
+                                                                    8,
+                                                                    9,
+                                                                    10,
+                                                                    11,
+                                                                    12,
+                                                                    13,
+                                                                    14,
+                                                                    15,
+                                                                    16,
+                                                                    17,
+                                                                    18,
+                                                                    19,
+                                                                    20,
+                                                                    21,
+                                                                    22,
+                                                                    23,
+                                                                    24,
+                                                                    25,
+                                                                    26,
+                                                                    27,
+                                                                    28,
+                                                                    29,
+                                                                    30,
+                                                                    31,
+                                                                    32,
+                                                                    33,
+                                                                    34,
+                                                                    35,
+                                                                    36,
+                                                                    37,
+                                                                    38,
+                                                                    39,
+                                                                    40,
+                                                                    41,
+                                                                    42,
+                                                                    43,
+                                                                    44,
+                                                                    45,
+                                                                    46,
+                                                                    47,
+                                                                    48,
+                                                                    49,
+                                                                    50,
+                                                                    51,
+                                                                    52,
+                                                                    53,
+                                                                    54,
+                                                                    55,
+                                                                    56,
+                                                                    57,
+                                                                    58,
+                                                                    59,
+                                                                    60,
+                                                                    61,
+                                                                    62,
+                                                                    63,
+                                                                    64,
+                                                                    65,
+                                                                    66,
+                                                                    67,
+                                                                    68,
+                                                                    69,
+                                                                    70,
+                                                                    71,
+                                                                    72,
+                                                                    73,
+                                                                    74,
+                                                                    75,
+                                                                    76,
+                                                                    77,
+                                                                    78,
+                                                                    79,
+                                                                    80,
+                                                                    81,
+                                                                    82,
+                                                                    83,
+                                                                    84,
+                                                                    85,
+                                                                    86,
+                                                                    87,
+                                                                    88,
+                                                                    89,
+                                                                    90,
+                                                                    91,
+                                                                    92,
+                                                                    93,
+                                                                    94,
+                                                                    95,
+                                                                    96,
+                                                                    97,
+                                                                    98,
+                                                                    99,
+                                                                    100], gamma=2)
 
-for epoch in range(num_epochs):
-    i = 1
-    epoch_loss = 0
-    while i <= 100:
-        x = group.get_group(i).to_numpy()
-        total_loss = 0
-        for t in range(x.shape[0]):
-            if t == 0:
-                X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
-                y = x[t, -1:]
-            elif t == x.shape[0] - 1:
-                X = np.append(x[t - 1:, 2:-1], [np.zeros(14)], axis=0)
-            else:
-                X = x[t - 1:t + 2, 2:-1]
-            y = x[t, -1:]
-            X_train_tensors = Variable(torch.Tensor(X))
-            y_train_tensors = Variable(torch.Tensor(y))
-            X_train_tensors_final = X_train_tensors.reshape((1, 1, X_train_tensors.shape[0], X_train_tensors.shape[1]))
-            # train_x = train_x.reshape(train_x.shape[0], 1, 15, nf)
-            # forward pass
-            outputs = model.forward(X_train_tensors_final, t)
-            # calculate the gradient, manually setting to 0
-            optim.zero_grad()
-
-            # obtain the loss function
-            loss = criterion(outputs, y_train_tensors)
-
-            # calculates the loss of the loss function
-            loss.backward()
-
-            # improve from loss, i.e back propagation
-            optim.step()
-
-            total_loss += loss.item()
-
-        # print("Epoch: %d, No. %d, loss: %1.5f" % (epoch, i, total_loss / x.shape[0]))
-        # if epoch % 2 == 0:
-        i += 1
-        epoch_loss += total_loss / x.shape[0]
-
-    scheduler.step()
-
-    print("Epoch: %d, loss: %1.5f" % (epoch, epoch_loss / 100))
-
-test.drop(labels=drop_labels, axis=1, inplace=True)
-
-title = test.iloc[:, 0:2]
-data = test.iloc[:, 2:]
-
-data_norm = (data - data.min()) / (data.max() - data.min())
-
-test_norm = pd.concat([title, data_norm], axis=1)
-
-group = test_norm.groupby(by="unit_nr")
-
-rmse = 0
-
-j = 1
-
-result = []
-
-while j <= 100:
-    x = group.get_group(j).to_numpy()
-
+i = 1
+epoch_loss = []
+while i <= 100:
+    x = group.get_group(i).to_numpy()
+    total_loss = 0
+    optim.zero_grad()
     for t in range(x.shape[0]):
         if t == 0:
-            X = np.append([np.zeros(14)], x[t:t + 2, 2:], axis=0)
+            X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
             y = x[t, -1:]
         elif t == x.shape[0] - 1:
-            X = np.append(x[t - 1:, 2:], [np.zeros(14)], axis=0)
+            X = np.append(x[t - 1:, 2:-1], [np.zeros(14)], axis=0)
         else:
-            X = x[t - 1:t + 2, 2:]
-
-        X_test_tensors = Variable(torch.Tensor(X))
-
-        X_test_tensors_final = X_test_tensors.reshape((1, 1, X_test_tensors.shape[0], X_test_tensors.shape[1]))
+            X = x[t - 1:t + 2, 2:-1]
+        y = x[t, -1:]
+        X_train_tensors = Variable(torch.Tensor(X))
+        y_train_tensors = Variable(torch.Tensor(y))
+        X_train_tensors_final = X_train_tensors.reshape((1, 1, X_train_tensors.shape[0], X_train_tensors.shape[1]))
         # train_x = train_x.reshape(train_x.shape[0], 1, 15, nf)
         # forward pass
-        test_predict = model.forward(X_test_tensors_final, t)
-        data_predict = test_predict.data.numpy()[-1] * 140
+        outputs = model.forward(X_train_tensors_final, t)
 
-    if data_predict < 0:
-        data_predict = 0
+        # obtain the loss function
+        loss = criterion(outputs, y_train_tensors)
 
-    result.append(data_predict)
-    rmse += np.power((data_predict - y_test.to_numpy()[j - 1]), 2)
-    j += 1
+        # calculates the loss of the loss function
+        # loss.backward()
 
-rmse = np.sqrt(rmse / 100)
-print(rmse)
+        # improve from loss, i.e back propagation
+        # optim.step()
 
-result = pd.DataFrame(result)
-result = y_test.join(result)
-result = result.sort_values('RUL', ascending=False)
+        total_loss += loss.item()
 
-true_rul = result.iloc[:, 0:1].to_numpy()
-pred_rul = result.iloc[:, 1:].to_numpy()
+        # predictions = model(inputs)  # Forward pass
+        # loss = loss_function(predictions, labels)  # Compute loss function
+        loss = loss / x.shape[0]  # Normalize our loss (if averaged)
+        loss.backward()  # Backward pass
+        if t == x.shape[0] - 1:  # Wait for several backward steps
+            optim.step()  # Now we can do an optimizer step
+            optim.zero_grad()  # Reset gradients tensors
+            # if (i + 1) % evaluation_steps == 0:  # Evaluate the model when we...
+            #     evaluate_model()
+
+            # print("Epoch: %d, No. %d, loss: %1.5f" % (epoch, i, total_loss / x.shape[0]))
+    # if epoch % 2 == 0:
+    i += 1
+    epoch_loss.append(total_loss / x.shape[0])
+    scheduler.step()
 
 plt.figure(figsize=(10, 6))
 plt.axvline(x=100, c='r', linestyle='--')
-plt.plot(true_rul, label='Actual Data')
-plt.plot(pred_rul, label='Predicted Data')
+plt.plot(epoch_loss, label='Actual Data')
 plt.title('Remaining Useful Life Prediction')
 plt.legend()
 plt.xlabel("Samples")
 plt.ylabel("Remaining Useful Life")
-plt.savefig('Transformer({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "140", "512"))
 plt.show()
