@@ -228,8 +228,9 @@ def add_remaining_useful_life(df):
     min_engine = np.exp(-pow((result_frame["max_cycle"] / 225.02895), 4.40869))
     result_frame["min"] = min_engine
 
-    remaining_useful_life = (np.exp(-pow((result_frame["time_cycles"] / 225.02895), 4.40869)) - result_frame["min"]) / (
-            1 - result_frame["min"])
+    remaining_useful_life = round(
+        (np.exp(-pow((result_frame["time_cycles"] / 225.02895), 4.40869)) - result_frame["min"]) / (
+                1 - result_frame["min"]) * 140)
 
     result_frame["RUL"] = remaining_useful_life
 
@@ -272,7 +273,7 @@ train_norm = add_remaining_useful_life(train_norm)
 
 group = train_norm.groupby(by="unit_nr")
 
-num_epochs = 10
+num_epochs = 30
 d_model = 128
 heads = 4
 N = 2
@@ -367,7 +368,7 @@ while j <= 100:
         X_test_tensors_final = X_test_tensors.reshape((1, 1, X_test_tensors.shape[0], X_test_tensors.shape[1]))
 
         test_predict = model.forward(X_test_tensors_final, t)
-        data_predict = test_predict.data.numpy()[-1] * 200
+        data_predict = test_predict.data.numpy()[-1]
 
     if data_predict < 0:
         data_predict = 0

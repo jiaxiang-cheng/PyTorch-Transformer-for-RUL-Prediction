@@ -344,6 +344,9 @@ group = test_norm.groupby(by="unit_nr")
 
 model.eval()
 
+pred_names = ['id', 'cycle', 'pred', 'ref']
+full_predict = pd.DataFrame(columns=pred_names)
+
 rmse = 0
 
 j = 1
@@ -367,14 +370,33 @@ while j <= 100:
         X_test_tensors_final = X_test_tensors.reshape((1, 1, X_test_tensors.shape[0], X_test_tensors.shape[1]))
 
         test_predict = model.forward(X_test_tensors_final, t)
-        data_predict = test_predict.data.numpy()[-1] * 200
+        data_predict = test_predict.data.numpy()[-1] * 140
 
-    if data_predict < 0:
-        data_predict = 0
+        if data_predict < 0:
+            data_predict = 0
+
+        temp_predict = pd.DataFrame([[j, t, data_predict, min(140, x.shape[0] + y_test.to_numpy()[j - 1] - t - 1)]],
+                                    columns=pred_names)
+        full_predict = full_predict.append(temp_predict, ignore_index=True)
 
     result.append(data_predict)
     rmse += np.power((data_predict - y_test.to_numpy()[j - 1]), 2)
     j += 1
+
+group_test = full_predict.groupby(by="id")
+idx = 47
+x_test = group_test.get_group(idx).to_numpy()
+
+plt.figure(figsize=(10, 6))
+plt.axvline(c='r', linestyle='--')
+plt.plot(x_test[:, -1:], label='Target RUL')
+plt.plot(x_test[:, 2:3], label='Predicted RUL')
+plt.title('Remaining Useful Life Prediction')
+plt.legend()
+plt.xlabel("Cycles")
+plt.ylabel("Remaining Useful Life")
+plt.savefig('TransformerV6({}).png'.format(idx))
+plt.show()
 
 rmse = np.sqrt(rmse / 100)
 print(rmse)
@@ -394,5 +416,5 @@ plt.title('Remaining Useful Life Prediction')
 plt.legend()
 plt.xlabel("Samples")
 plt.ylabel("Remaining Useful Life")
-plt.savefig('TransformerV5({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "200", "512"))
+plt.savefig('TransformerV6({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "140", "512"))
 plt.show()
