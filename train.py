@@ -3,33 +3,40 @@ from loading_data import *
 from testing import *
 from visualize import *
 
+import os
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+
 num_epochs = 20
-d_model = 128
-heads = 4
-N = 2
-m = 14
+d_model = 128  # dimension in encoder
+heads = 4  # number of heads in multi-head attention
+N = 2  # number of encoder layers
+m = 14  # number of features
 
 
 def training():
 
-    for epoch in range(num_epochs):
-
+    for epoch in range(num_epochs):  # iteration of epoch
         i = 1
         epoch_loss = 0
+
+        # training step
         model.train()
 
-        while i <= 100:
+        while i <= 100:  # iteration of unit
 
+            # fetch the data of unit i
             x = group.get_group(i).to_numpy()
+
             total_loss = 0
             optim.zero_grad()
 
             for t in range(x.shape[0] - 1):
-                if t == 0:
+                if t == 0:  # skip the first and last for convolution without padding
                     continue
                 else:
-                    X = x[t - 1:t + 2, 2:-1]
-                y = x[t, -1:]
+                    X = x[t - 1:t + 2, 2:-1]  # fetch the 3 * 14 feature as input
+                y = x[t, -1:]  # fetch the corresponding target rul as label
+
                 X_train_tensors = Variable(torch.Tensor(X))
                 y_train_tensors = Variable(torch.Tensor(y))
                 X_train_tensors_final = X_train_tensors.reshape(
@@ -41,10 +48,13 @@ def training():
                 # obtain the loss function
                 loss = criterion(outputs, y_train_tensors)
 
+                # summarize the loss
                 total_loss += loss.item()
 
-                loss = loss / (x.shape[0] - 2)  # Normalize our loss (if averaged)
-                loss.backward()  # Backward pass
+                loss = loss / (x.shape[0] - 2)  # normalize the loss
+                loss.backward()  # backward pass
+
+                # only update after finishing one unit
                 if t == x.shape[0] - 2:  # Wait for several backward steps
                     optim.step()  # Now we can do an optimizer step
                     optim.zero_grad()  # Reset gradients tensors
@@ -52,6 +62,7 @@ def training():
             i += 1
             epoch_loss += total_loss / x.shape[0]
 
+        # evaluate model
         model.eval()
 
         with torch.no_grad():

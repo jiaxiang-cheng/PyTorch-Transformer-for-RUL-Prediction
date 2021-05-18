@@ -37,7 +37,7 @@ class Gating(nn.Module):
         self.V_u = nn.Parameter(torch.Tensor(m, m))
         self.b_u = nn.Parameter(torch.Tensor(m))
 
-        # the update gate u_i
+        # the output
         self.W_e = nn.Parameter(torch.Tensor(m, d_model))
         self.b_e = nn.Parameter(torch.Tensor(d_model))
 
