@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
 
 seaborn.set_context(context="talk")
 
@@ -114,7 +115,7 @@ def get_clones(module, N):
 
 # build an encoder layer with one multi-head attention layer and one # feed-forward layer
 class EncoderLayer(nn.Module):
-    def __init__(self, d_model, heads, dropout=0.8):
+    def __init__(self, d_model, heads, dropout=0.5):
         super().__init__()
         self.norm_1 = Norm(d_model)
         self.norm_2 = Norm(d_model)
@@ -147,7 +148,7 @@ class Norm(nn.Module):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, heads, d_model, dropout=0.8):
+    def __init__(self, heads, d_model, dropout=0.5):
         super().__init__()
 
         self.d_model = d_model
@@ -203,7 +204,7 @@ def attention(q, k, v, d_k, mask=None, dropout=None):
 
 
 class FeedForward(nn.Module):
-    def __init__(self, d_model, d_ff=512, dropout=0.8):
+    def __init__(self, d_model, d_ff=512, dropout=0.5):
         super().__init__()
         # We set d_ff as a default to 2048
         self.linear_1 = nn.Linear(d_model, d_ff)
@@ -224,19 +225,13 @@ def add_remaining_useful_life(df):
     # Merge the max cycle back into the original frame
     result_frame = df.merge(max_cycle.to_frame(name='max_cycle'), left_on='unit_nr', right_index=True)
 
-    # Calculate remaining useful life for each row (scaled Weibull)
-    min_engine = np.exp(-pow((result_frame["max_cycle"] / 225.02895), 4.40869))
-    result_frame["min"] = min_engine
-
-    remaining_useful_life = round(
-        (np.exp(-pow((result_frame["time_cycles"] / 225.02895), 4.40869)) - result_frame["min"]) / (
-                1 - result_frame["min"]) * 140)
+    # Calculate remaining useful life for each row (piece-wise Linear)
+    remaining_useful_life = result_frame["max_cycle"] - result_frame["time_cycles"]
 
     result_frame["RUL"] = remaining_useful_life
 
     # drop max_cycle as it's no longer needed
     result_frame = result_frame.drop("max_cycle", axis=1)
-    result_frame = result_frame.drop("min", axis=1)
 
     return result_frame
 
@@ -269,11 +264,25 @@ data_norm = (data - data.min()) / (data.max() - data.min())
 train_norm = pd.concat([title, data_norm], axis=1)
 
 train_norm = add_remaining_useful_life(train_norm)
-# train['RUL'].clip(upper=140, inplace=True)
+train_norm['RUL'].clip(upper=140, inplace=True)
 
 group = train_norm.groupby(by="unit_nr")
 
-num_epochs = 30
+test.drop(labels=drop_labels, axis=1, inplace=True)
+
+title = test.iloc[:, 0:2]
+data = test.iloc[:, 2:]
+
+data_norm = (data - data.min()) / (data.max() - data.min())
+
+test_norm = pd.concat([title, data_norm], axis=1)
+
+group_test = test_norm.groupby(by="unit_nr")
+
+pred_names = ['id', 'cycle', 'pred', 'ref']
+full_predict = pd.DataFrame(columns=pred_names)
+
+num_epochs = 5
 d_model = 128
 heads = 4
 N = 2
@@ -289,7 +298,7 @@ optim = torch.optim.Adam(model.parameters(), lr=0.001)
 
 criterion = torch.nn.MSELoss()  # mean-squared error for regression
 
-# scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[10], gamma=0.1)
+# scheduler = torch.optim.lr_scheduler.MultiStepLR(optim, milestones=[3], gamma=0.01)
 
 for epoch in range(num_epochs):
     i = 1
@@ -298,10 +307,9 @@ for epoch in range(num_epochs):
         x = group.get_group(i).to_numpy()
         total_loss = 0
         optim.zero_grad()
-        for t in range(x.shape[0]):
+        for t in range(x.shape[0] - 1):
             if t == 0:
-                X = np.append([np.zeros(14)], x[t:t + 2, 2:-1], axis=0)
-                y = x[t, -1:]
+                continue
             elif t == x.shape[0] - 1:
                 X = np.append(x[t - 1:, 2:-1], [np.zeros(14)], axis=0)
             else:
@@ -321,67 +329,62 @@ for epoch in range(num_epochs):
 
             loss = loss / x.shape[0]  # Normalize our loss (if averaged)
             loss.backward()  # Backward pass
-            if t == x.shape[0] - 1:  # Wait for several backward steps
+            if t == x.shape[0] - 2:  # Wait for several backward steps
                 optim.step()  # Now we can do an optimizer step
                 optim.zero_grad()  # Reset gradients tensors
 
         i += 1
         epoch_loss += total_loss / x.shape[0]
 
+    rmse = 0
+
+    j = 1
+
+    result = []
+
+    model.eval()
+
+    while j <= 100:
+        x_test = group_test.get_group(j).to_numpy()
+        data_predict = 0
+        for t in range(x_test.shape[0] - 1):
+            if t == 0:
+                # X = np.append([np.zeros(14)], x[t:t + 2, 2:], axis=0)
+                # y = x[t, -1:]
+                continue
+            elif t == x_test.shape[0] - 1:
+                X_test = np.append(x_test[t - 1:, 2:], [np.zeros(14)], axis=0)
+            else:
+                X_test = x_test[t - 1:t + 2, 2:]
+
+            X_test_tensors = Variable(torch.Tensor(X_test))
+
+            X_test_tensors_final = X_test_tensors.reshape((1, 1, X_test_tensors.shape[0], X_test_tensors.shape[1]))
+
+            test_predict = model.forward(X_test_tensors_final, t)
+            data_predict = test_predict.data.numpy()[-1]
+
+            # temp_predict = pd.DataFrame([[j, t, data_predict, min(140, x.shape[0] + y_test.to_numpy()[j - 1] - t -
+            # 1)]], columns=pred_names) full_predict = full_predict.append(temp_predict, ignore_index=True)
+
+        if data_predict - 1 < 0:
+            data_predict = 0
+        else:
+            data_predict -= 1
+
+        result.append(data_predict)
+        rmse += np.power((data_predict - y_test.to_numpy()[j - 1]), 2)
+        j += 1
+
+    rmse = np.sqrt(rmse / 100)
+    # print(rmse)
+
     # scheduler.step()
 
-    print("Epoch: %d, loss: %1.5f" % (epoch, epoch_loss / 100))
+    print("Epoch: %d, loss: %1.5f, RMSE: %1.5f" % (epoch, epoch_loss / 100, rmse))
 
-test.drop(labels=drop_labels, axis=1, inplace=True)
-
-title = test.iloc[:, 0:2]
-data = test.iloc[:, 2:]
-
-data_norm = (data - data.min()) / (data.max() - data.min())
-
-test_norm = pd.concat([title, data_norm], axis=1)
-
-group = test_norm.groupby(by="unit_nr")
-
-model.eval()
-
-rmse = 0
-
-j = 1
-
-result = []
-
-while j <= 100:
-    x = group.get_group(j).to_numpy()
-
-    for t in range(x.shape[0]):
-        if t == 0:
-            X = np.append([np.zeros(14)], x[t:t + 2, 2:], axis=0)
-            y = x[t, -1:]
-        elif t == x.shape[0] - 1:
-            X = np.append(x[t - 1:, 2:], [np.zeros(14)], axis=0)
-        else:
-            X = x[t - 1:t + 2, 2:]
-
-        X_test_tensors = Variable(torch.Tensor(X))
-
-        X_test_tensors_final = X_test_tensors.reshape((1, 1, X_test_tensors.shape[0], X_test_tensors.shape[1]))
-
-        test_predict = model.forward(X_test_tensors_final, t)
-        data_predict = test_predict.data.numpy()[-1]
-
-    if data_predict < 0:
-        data_predict = 0
-
-    result.append(data_predict)
-    rmse += np.power((data_predict - y_test.to_numpy()[j - 1]), 2)
-    j += 1
-
-rmse = np.sqrt(rmse / 100)
-print(rmse)
-
-result = pd.DataFrame(result)
-result = y_test.join(result)
+# result = pd.DataFrame(result)
+result = y_test.join(pd.DataFrame(result))
 result = result.sort_values('RUL', ascending=False)
 
 true_rul = result.iloc[:, 0:1].to_numpy()
@@ -395,5 +398,5 @@ plt.title('Remaining Useful Life Prediction')
 plt.legend()
 plt.xlabel("Samples")
 plt.ylabel("Remaining Useful Life")
-plt.savefig('TransformerV5({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "200", "512"))
+plt.savefig('TransformerV7({})lr{}E{}C{}F{}_weibull.png'.format(rmse, "0.001", num_epochs, "140", "512"))
 plt.show()
