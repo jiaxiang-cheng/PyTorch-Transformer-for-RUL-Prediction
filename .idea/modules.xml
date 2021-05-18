@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../Deep-CNN-for-Estimation-of-Remaining-Useful-Life/.idea/Deep-CNN-for-Estimation-of-Remaining-Useful-Life.iml" filepath="$PROJECT_DIR$/../Deep-CNN-for-Estimation-of-Remaining-Useful-Life/.idea/Deep-CNN-for-Estimation-of-Remaining-Useful-Life.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../LSTM-for-RUL-Prediction/.idea/LSTM-for-RUL-Prediction.iml" filepath="$PROJECT_DIR$/../LSTM-for-RUL-Prediction/.idea/LSTM-for-RUL-Prediction.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/PyTorch-Transformer-for-RUL-Prediction.iml" filepath="$PROJECT_DIR$/.idea/PyTorch-Transformer-for-RUL-Prediction.iml" />
     </modules>
   </component>

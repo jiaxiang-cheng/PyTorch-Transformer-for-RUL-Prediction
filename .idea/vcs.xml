@@ -2,7 +2,5 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../Deep-CNN-for-Estimation-of-Remaining-Useful-Life" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/../LSTM-for-RUL-Prediction" vcs="Git" />
   </component>
 </project>
