@@ -2,7 +2,10 @@ import matplotlib.pyplot as plt
 
 
 def visualize(result, rmse):
+
+    # the true remaining useful life of the testing samples
     true_rul = result.iloc[:, 0:1].to_numpy()
+    # the predicted remaining useful life of the testing samples
     pred_rul = result.iloc[:, 1:].to_numpy()
 
     plt.figure(figsize=(10, 6))
