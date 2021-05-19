@@ -1,6 +1,8 @@
 # PyTorch Transformer for RUL Prediction
 An implementation with Transformer encoder and convolution layers with PyTorch for remaining useful life prediction.
 
+[![DOI](https://zenodo.org/badge/365902211.svg)](https://zenodo.org/badge/latestdoi/365902211)
+
 ## Quick Run
 Simply run `pyhton train.py`. And you will get the training loss and testing result for each epoch:
 ```
