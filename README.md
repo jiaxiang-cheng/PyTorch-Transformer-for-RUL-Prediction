@@ -1,9 +1,10 @@
 # PyTorch Transformer for RUL Prediction
 An implementation with Transformer encoder and convolution layers with PyTorch for remaining useful life prediction.
-## Run
+
+## Quick Run
 Simply run `pyhton train.py`.
 
-## Testing Results
+## Prediction Results
 The current model can achieve root mean square error in a range of 20 to 40 with random seeds, which is still not far from the SOTA. One of the best testing results achieved on FD001 is shown as follows:
 ![](https://github.com/jiaxiang-cheng/transformer-pytorch-remaining-useful-life-prediction/blob/main/best%20trial%20with%20FD001.png?raw=true)
 
@@ -81,3 +82,6 @@ xz                        5.2.5                h1de35cc_0
 zlib                      1.2.11               h1de35cc_3  
 zstd                      1.4.9                h322a384_0  
 ```
+
+## Credit
+This work is inpired by Mo, Y., Wu, Q., Li, X., & Huang, B. (2021). Remaining useful life estimation via transformer encoder enhanced by a gated convolutional unit. Journal of Intelligent Manufacturing, 1-10.
