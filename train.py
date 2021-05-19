@@ -6,7 +6,7 @@ from visualize import *
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
-num_epochs = 20
+num_epochs = 4
 d_model = 128  # dimension in encoder
 heads = 4  # number of heads in multi-head attention
 N = 2  # number of encoder layers
