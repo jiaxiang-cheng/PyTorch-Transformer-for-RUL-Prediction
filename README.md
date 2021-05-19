@@ -2,7 +2,15 @@
 An implementation with Transformer encoder and convolution layers with PyTorch for remaining useful life prediction.
 
 ## Quick Run
-Simply run `pyhton train.py`.
+Simply run `pyhton train.py`. And you will get the training loss and testing result for each epoch:
+```
+Epoch: 0, loss: 9474.43470, RMSE: 61.11946
+Epoch: 1, loss: 5858.27227, RMSE: 46.03318
+Epoch: 2, loss: 3208.53410, RMSE: 29.78244
+Epoch: 3, loss: 1310.71390, RMSE: 22.94705
+...
+```
+The testing is conducted for each epoch as the data set is not large so it's no big deal but you may remove them and only do the evaluation after finishing the training epochs.
 
 ## Prediction Results
 The current model can achieve root mean square error in a range of 20 to 40 with random seeds, which is still not far from the SOTA. One of the best testing results achieved on FD001 is shown as follows:
