@@ -4,7 +4,7 @@ An implementation with Transformer encoder and convolution layers with PyTorch f
 [![DOI](https://zenodo.org/badge/365902211.svg)](https://zenodo.org/badge/latestdoi/365902211)
 
 ## Quick Run
-Simply run `pyhton train.py`. And you will get the training loss and testing result for each epoch:
+Simply run `python train.py`. And you will get the training loss and testing result for each epoch:
 ```
 Epoch: 0, loss: 9474.43470, RMSE: 61.11946
 Epoch: 1, loss: 5858.27227, RMSE: 46.03318
