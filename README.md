@@ -5,7 +5,7 @@ _Author: Jiaxiang Cheng, Nanyang Technological University, Singapore_
 <img alt="Python" src="https://img.shields.io/badge/python-%2314354C.svg?style=for-the-badge&logo=python&logoColor=white"/> <img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?style=for-the-badge&logo=PyTorch&logoColor=white" />
 
 ## Quick Run
-Simply run `python train.py`. And you will get the training loss and testing result for each epoch:
+Simply run `python train.py --dataset FD001`. And you will get the training loss and testing result for each epoch where the RMSE is from the test set:
 ```
 Epoch: 0, loss: 9474.43470, RMSE: 61.11946
 Epoch: 1, loss: 5858.27227, RMSE: 46.03318
