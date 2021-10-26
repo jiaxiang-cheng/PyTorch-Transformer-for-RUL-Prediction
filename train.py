@@ -68,7 +68,7 @@ def training():
         with torch.no_grad():
             rmse, result = testing(group_test, y_test, model)
 
-        print("Epoch: %d, loss: %1.5f, rmse: %1.5f" % (epoch, epoch_loss / 100, rmse))
+        print("Epoch: %d, training loss: %1.5f, testing rmse: %1.5f" % (epoch, epoch_loss / 100, rmse))
 
     return result, rmse
 
