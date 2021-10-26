@@ -91,7 +91,7 @@ if __name__ == "__main__":
         group, y_test, group_test = loading_FD001()
         
         #setting the drooput rate
-        dropout = 0.2
+        dropout = 0.1
         
         # define and load model
         model = Transformer(m, d_model, N, heads, dropout)
