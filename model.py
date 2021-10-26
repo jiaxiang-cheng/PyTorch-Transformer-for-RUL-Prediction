@@ -1,29 +1,37 @@
 import copy
 import math
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
 
+'''
+num_epochs = 1 # Number of training epochs
+d_model = 128  # dimension in encoder
+heads = 4  # number of heads in multi-head attention
+N = 2  # number of encoder layers
+m = 14  # number of features
+'''
+
 class Transformer(nn.Module):
-    def __init__(self, m, d_model, N, heads):
+    def __init__(self, m, d_model, N, heads, dropout):
         super().__init__()
         self.gating = Gating(d_model, m)
-        self.encoder = Encoder(d_model, N, heads, m)
+        self.encoder = Encoder(d_model, N, heads, m, dropout)
         self.out = nn.Linear(d_model, 1)
 
     def forward(self, src, t):
         e_i = self.gating(src)
         e_outputs = self.encoder(e_i, t)
         output = self.out(e_outputs)
+        
         return output.reshape(1)
 
 
 class Gating(nn.Module):
-    def __init__(self, d_model, m):
+    def __init__(self, d_model, m): # 128,14
         super().__init__()
         self.m = m
 
@@ -44,8 +52,9 @@ class Gating(nn.Module):
         self.init_weights()
 
         self.cnn_layers = nn.Sequential(
-            nn.Conv2d(1, 1, kernel_size=(3, 1), stride=1),
+            nn.Conv2d(1, 1, kernel_size=(3, 1), stride=1), 
         )
+        
 
     def init_weights(self):
         stdv = 1.0 / math.sqrt(self.m)
@@ -53,8 +62,8 @@ class Gating(nn.Module):
             weight.data.uniform_(-stdv, stdv)
 
     def forward(self, x):
-        x_i = x[:, :, 1:2, :]
-        h_i = self.cnn_layers(x)
+        x_i = x[:, :, 1:2, :] #only applying the gating on the current row even with the stack of 3 rows cames as input (1,1,3,14)
+        h_i = self.cnn_layers(x) # shape becomes 1,1,1,14 as the nn.conv2d has output channel as 1 but the convolution is applied on whole past input (stack of three)
 
         r_i = torch.sigmoid(torch.matmul(h_i, self.W_r) + torch.matmul(x_i, self.V_r) + self.b_r)
         u_i = torch.sigmoid(torch.matmul(h_i, self.W_u) + torch.matmul(x_i, self.V_u) + self.b_u)
@@ -62,21 +71,21 @@ class Gating(nn.Module):
         # the output of the gating mechanism
         hh_i = torch.mul(h_i, u_i) + torch.mul(x_i, r_i)
 
-        return torch.matmul(hh_i, self.W_e) + self.b_e
+        return torch.matmul(hh_i, self.W_e) + self.b_e # (the final output is 1,1,1,128 as the encoder has size of 128.)
 
 
 class Encoder(nn.Module):
-    def __init__(self, d_model, N, heads, m):
+    def __init__(self, d_model, N, heads, m, dropout): #d_model = 128  # dimension in encoder, heads = 4  #number of heads in multi-head attention, N = 2  #encoder layers, m = 14  #number of features
         super().__init__()
         self.N = N
         # self.embed = Embedder(vocab_size, d_model)
         self.pe = PositionalEncoder(d_model)
-        self.layers = get_clones(EncoderLayer(d_model, heads), N)
+        self.layers = get_clones(EncoderLayer(d_model, heads, dropout), N)
         self.norm = Norm(d_model)
+        self.d_model = d_model
 
     def forward(self, src, t):
-        src = src.reshape(1, 128)
-        # print(src.size())
+        src = src.reshape(1, self.d_model) # this 128 is changed according to d_model
         x = self.pe(src, t)
         for i in range(self.N):
             x = self.layers[i](x, None)
@@ -113,7 +122,7 @@ class EncoderLayer(nn.Module):
         super().__init__()
         self.norm_1 = Norm(d_model)
         self.norm_2 = Norm(d_model)
-        self.attn = MultiHeadAttention(heads, d_model)
+        self.attn = MultiHeadAttention(heads, d_model, dropout)
         self.ff = FeedForward(d_model)
         self.dropout_1 = nn.Dropout(dropout)
         self.dropout_2 = nn.Dropout(dropout)

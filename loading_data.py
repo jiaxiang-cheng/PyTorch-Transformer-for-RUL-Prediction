@@ -33,7 +33,7 @@ def loading_FD001():
 
     # add piece-wise target remaining useful life
     train_norm = add_remaining_useful_life(train_norm)
-    train_norm['RUL'].clip(upper=140, inplace=True)
+    train_norm['RUL'].clip(upper=125, inplace=True) # in the paper the MAX RUL is mentioned as 125
 
     # group the training set with unit
     group = train_norm.groupby(by="unit_nr")
