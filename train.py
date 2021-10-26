@@ -4,7 +4,6 @@ from model import *
 from loading_data import *
 from testing import *
 from visualize import *
-from torchsummary import summary
 import os
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 import argparse
